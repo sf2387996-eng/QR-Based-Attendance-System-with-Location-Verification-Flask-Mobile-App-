@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports — QR Attendance Admin</title>
+    <meta name="description" content="Generate and download attendance reports in the QR-Based Attendance System">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">📍</div>
+                <h2>QR Attendance <span>Admin Portal</span></h2>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-label">Main</div>
+                <a href="dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i> Dashboard</a>
+                <a href="users.html"     class="nav-item"><i class="fas fa-users"></i> Users</a>
+                <a href="courses.html"   class="nav-item"><i class="fas fa-book"></i> Courses</a>
+                <a href="attendance.html" class="nav-item"><i class="fas fa-clipboard-check"></i> Attendance</a>
+                <a href="reports.html"   class="nav-item"><i class="fas fa-file-alt"></i> Reports</a>
+                <div class="nav-label">Account</div>
+                <a href="#" class="nav-item" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="admin-badge"><div class="avatar">A</div><span id="adminName">Admin</span></div>
+            </div>
+        </aside>
+
+        <div class="main-content">
+            <header class="topbar">
+                <div style="display:flex;align-items:center;gap:1rem;">
+                    <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                    <h1>Reports</h1>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <!-- ── Student-wise Report ──── -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-user-graduate" style="margin-right:0.5rem;color:var(--primary-light);"></i> Student-wise Attendance Report</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="toolbar" style="flex-wrap:wrap;">
+                            <div class="form-group" style="margin-bottom:0;min-width:160px;">
+                                <label style="font-size:0.75rem;">Student</label>
+                                <select class="form-control" id="srStudent"><option value="">All Students</option></select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;min-width:150px;">
+                                <label style="font-size:0.75rem;">From Date</label>
+                                <input type="date" class="form-control" id="srDateFrom">
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;min-width:150px;">
+                                <label style="font-size:0.75rem;">To Date</label>
+                                <input type="date" class="form-control" id="srDateTo">
+                            </div>
+                            <button class="btn btn-primary btn-sm" onclick="loadStudentReport()" style="align-self:flex-end;">
+                                <i class="fas fa-search"></i> Generate
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead><tr><th>Student</th><th>Course</th><th>Total</th><th>Present</th><th>Absent</th><th>Late</th><th>%</th></tr></thead>
+                                <tbody id="studentReportTable"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">Click "Generate" to view report</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;margin-top:1rem;flex-wrap:wrap;">
+                            <button class="btn btn-outline btn-sm" onclick="downloadStudentReport('csv')"><i class="fas fa-file-csv"></i> Download CSV</button>
+                            <button class="btn btn-outline btn-sm" onclick="downloadStudentReport('pdf')"><i class="fas fa-file-pdf"></i> Download PDF</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Subject-wise Report ──── -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-book" style="margin-right:0.5rem;color:var(--accent);"></i> Subject-wise Attendance Report</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="toolbar" style="flex-wrap:wrap;">
+                            <div class="form-group" style="margin-bottom:0;min-width:160px;">
+                                <label style="font-size:0.75rem;">Course</label>
+                                <select class="form-control" id="crCourse"><option value="">All Courses</option></select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;min-width:150px;">
+                                <label style="font-size:0.75rem;">From Date</label>
+                                <input type="date" class="form-control" id="crDateFrom">
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;min-width:150px;">
+                                <label style="font-size:0.75rem;">To Date</label>
+                                <input type="date" class="form-control" id="crDateTo">
+                            </div>
+                            <button class="btn btn-primary btn-sm" onclick="loadSubjectReport()" style="align-self:flex-end;">
+                                <i class="fas fa-search"></i> Generate
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead><tr><th>Course</th><th>Total</th><th>Present</th><th>Absent</th><th>Late</th><th>%</th></tr></thead>
+                                <tbody id="subjectReportTable"><tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">Click "Generate" to view report</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;margin-top:1rem;flex-wrap:wrap;">
+                            <button class="btn btn-outline btn-sm" onclick="downloadSubjectReport('csv')"><i class="fas fa-file-csv"></i> Download CSV</button>
+                            <button class="btn btn-outline btn-sm" onclick="downloadSubjectReport('pdf')"><i class="fas fa-file-pdf"></i> Download PDF</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        if (!requireAuth()) throw 'Not authenticated';
+        initSidebar();
+
+        async function loadDropdowns() {
+            try {
+                const students = await api('/students');
+                const sSel = document.getElementById('srStudent');
+                sSel.innerHTML = '<option value="">All Students</option>';
+                students.forEach(s => sSel.innerHTML += `<option value="${s.id}">${s.name}</option>`);
+
+                const courses = await api('/courses/all');
+                const cSel = document.getElementById('crCourse');
+                cSel.innerHTML = '<option value="">All Courses</option>';
+                courses.forEach(c => cSel.innerHTML += `<option value="${c.id}">${c.code} — ${c.name}</option>`);
+            } catch (e) {}
+        }
+
+        function buildParams(prefix) {
+            let params = '';
+            const studentId = document.getElementById(`${prefix}Student`)?.value;
+            const courseId  = document.getElementById(`${prefix}Course`)?.value;
+            const dateFrom  = document.getElementById(`${prefix}DateFrom`).value;
+            const dateTo    = document.getElementById(`${prefix}DateTo`).value;
+            if (studentId) params += `&student_id=${studentId}`;
+            if (courseId)  params += `&course_id=${courseId}`;
+            if (dateFrom)  params += `&date_from=${dateFrom}`;
+            if (dateTo)    params += `&date_to=${dateTo}`;
+            return params;
+        }
+
+        async function loadStudentReport() {
+            showLoading();
+            try {
+                const params = buildParams('sr');
+                const data = await api(`/reports/student?format=json${params}`);
+                const tbody = document.getElementById('studentReportTable');
+                if (!data.length) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">No data found</td></tr>';
+                } else {
+                    tbody.innerHTML = data.map(r => `
+                        <tr>
+                            <td><strong>${r.student}</strong></td>
+                            <td>${r.course}</td>
+                            <td>${r.total}</td>
+                            <td>${r.present}</td>
+                            <td>${r.absent}</td>
+                            <td>${r.late}</td>
+                            <td>${pctBar(r.percentage)}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) { showToast(err.message, 'error'); }
+            finally { hideLoading(); }
+        }
+
+        async function loadSubjectReport() {
+            showLoading();
+            try {
+                const params = buildParams('cr');
+                const data = await api(`/reports/subject?format=json${params}`);
+                const tbody = document.getElementById('subjectReportTable');
+                if (!data.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">No data found</td></tr>';
+                } else {
+                    tbody.innerHTML = data.map(r => `
+                        <tr>
+                            <td><strong>${r.course}</strong></td>
+                            <td>${r.total}</td>
+                            <td>${r.present}</td>
+                            <td>${r.absent}</td>
+                            <td>${r.late}</td>
+                            <td>${pctBar(r.percentage)}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) { showToast(err.message, 'error'); }
+            finally { hideLoading(); }
+        }
+
+        async function downloadStudentReport(fmt) {
+            try {
+                const params = buildParams('sr');
+                await api(`/reports/student?format=${fmt}${params}`);
+                showToast(`Student report downloaded as ${fmt.toUpperCase()}`, 'success');
+            } catch (err) { showToast(err.message, 'error'); }
+        }
+
+        async function downloadSubjectReport(fmt) {
+            try {
+                const params = buildParams('cr');
+                await api(`/reports/subject?format=${fmt}${params}`);
+                showToast(`Subject report downloaded as ${fmt.toUpperCase()}`, 'success');
+            } catch (err) { showToast(err.message, 'error'); }
+        }
+
+        loadDropdowns();
+    </script>
+</body>
+</html>

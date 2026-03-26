@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Courses — QR Attendance Admin</title>
+    <meta name="description" content="Manage courses and timetable in the QR-Based Attendance System">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">📍</div>
+                <h2>QR Attendance <span>Admin Portal</span></h2>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-label">Main</div>
+                <a href="dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i> Dashboard</a>
+                <a href="users.html"     class="nav-item"><i class="fas fa-users"></i> Users</a>
+                <a href="courses.html"   class="nav-item"><i class="fas fa-book"></i> Courses</a>
+                <a href="attendance.html" class="nav-item"><i class="fas fa-clipboard-check"></i> Attendance</a>
+                <a href="reports.html"   class="nav-item"><i class="fas fa-file-alt"></i> Reports</a>
+                <div class="nav-label">Account</div>
+                <a href="#" class="nav-item" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="admin-badge"><div class="avatar">A</div><span id="adminName">Admin</span></div>
+            </div>
+        </aside>
+
+        <div class="main-content">
+            <header class="topbar">
+                <div style="display:flex;align-items:center;gap:1rem;">
+                    <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                    <h1>Courses & Timetable</h1>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <!-- ── Courses Panel ─── -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>Courses</h2>
+                        <button class="btn btn-primary btn-sm" onclick="openCourseModal()"><i class="fas fa-plus"></i> Add Course</button>
+                    </div>
+                    <div class="panel-body">
+                        <div class="toolbar">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="courseSearch" placeholder="Search courses…">
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr><th>#</th><th>Code</th><th>Name</th><th>Department</th><th>Teacher</th><th>Actions</th></tr>
+                                </thead>
+                                <tbody id="coursesTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="pagination" id="coursesPagination"></div>
+                </div>
+
+                <!-- ── Timetable Panel ─── -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>Timetable</h2>
+                        <button class="btn btn-primary btn-sm" onclick="openTTModal()"><i class="fas fa-plus"></i> Add Slot</button>
+                    </div>
+                    <div class="panel-body">
+                        <div class="toolbar">
+                            <select class="filter-select" id="ttCourseFilter">
+                                <option value="">All Courses</option>
+                            </select>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr><th>#</th><th>Course</th><th>Day</th><th>Start</th><th>End</th><th>Room</th><th>Actions</th></tr>
+                                </thead>
+                                <tbody id="timetableTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="pagination" id="ttPagination"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Modal -->
+    <div class="modal-overlay" id="courseModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="courseModalTitle">Add Course</h3>
+                <button class="modal-close" onclick="closeModal('courseModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="courseForm">
+                    <input type="hidden" id="courseId">
+                    <div class="form-group">
+                        <label for="courseCode">Course Code</label>
+                        <input type="text" class="form-control" id="courseCode" required placeholder="e.g. CS101">
+                    </div>
+                    <div class="form-group">
+                        <label for="courseName">Course Name</label>
+                        <input type="text" class="form-control" id="courseName" required placeholder="e.g. Data Structures">
+                    </div>
+                    <div class="form-group">
+                        <label for="courseDept">Department</label>
+                        <select class="form-control" id="courseDept"><option value="">Select</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="courseTeacher">Assigned Teacher</label>
+                        <select class="form-control" id="courseTeacher"><option value="">Select</option></select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('courseModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveCourse()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timetable Modal -->
+    <div class="modal-overlay" id="ttModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="ttModalTitle">Add Timetable Slot</h3>
+                <button class="modal-close" onclick="closeModal('ttModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="ttForm">
+                    <input type="hidden" id="ttId">
+                    <div class="form-group">
+                        <label for="ttCourse">Course</label>
+                        <select class="form-control" id="ttCourse" required><option value="">Select</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="ttDay">Day of Week</label>
+                        <select class="form-control" id="ttDay" required>
+                            <option value="">Select</option>
+                            <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+                            <option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="ttStart">Start Time</label>
+                        <input type="time" class="form-control" id="ttStart" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ttEnd">End Time</label>
+                        <input type="time" class="form-control" id="ttEnd" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ttRoom">Room</label>
+                        <input type="text" class="form-control" id="ttRoom" placeholder="e.g. Room 201">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('ttModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveTT()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        if (!requireAuth()) throw 'Not authenticated';
+        initSidebar();
+
+        let coursePage = 1, ttPage = 1;
+        let allCourses = [];
+
+        // ── Load dropdowns ──────────────────────────
+        async function loadDropdowns() {
+            try {
+                const depts = await api('/departments');
+                const teachersList = await api('/teachers');
+                allCourses = await api('/courses/all');
+
+                ['courseDept'].forEach(id => {
+                    const sel = document.getElementById(id);
+                    sel.innerHTML = '<option value="">Select</option>';
+                    depts.forEach(d => sel.innerHTML += `<option value="${d.id}">${d.name}</option>`);
+                });
+
+                const tSel = document.getElementById('courseTeacher');
+                tSel.innerHTML = '<option value="">Select</option>';
+                teachersList.forEach(t => tSel.innerHTML += `<option value="${t.id}">${t.name}</option>`);
+
+                // Course selectors for timetable
+                ['ttCourse', 'ttCourseFilter'].forEach(id => {
+                    const sel = document.getElementById(id);
+                    const first = id === 'ttCourseFilter' ? '<option value="">All Courses</option>' : '<option value="">Select</option>';
+                    sel.innerHTML = first;
+                    allCourses.forEach(c => sel.innerHTML += `<option value="${c.id}">${c.code} — ${c.name}</option>`);
+                });
+            } catch (e) {}
+        }
+
+        // ── Courses CRUD ────────────────────────────
+        async function loadCourses(page = 1) {
+            coursePage = page;
+            const search = document.getElementById('courseSearch').value.trim();
+            let params = `?page=${page}&per_page=10`;
+            if (search) params += `&search=${encodeURIComponent(search)}`;
+
+            showLoading();
+            try {
+                const data = await api(`/courses${params}`);
+                const tbody = document.getElementById('coursesTable');
+                if (!data.courses.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">No courses found</td></tr>';
+                } else {
+                    tbody.innerHTML = data.courses.map((c, i) => `
+                        <tr>
+                            <td>${(page-1)*10+i+1}</td>
+                            <td><strong>${c.code}</strong></td>
+                            <td>${c.name}</td>
+                            <td>${c.department || '—'}</td>
+                            <td>${c.teacher || '—'}</td>
+                            <td class="actions">
+                                <button class="btn-icon" onclick='editCourse(${JSON.stringify(c)})'><i class="fas fa-pen"></i></button>
+                                <button class="btn-icon delete" onclick="deleteCourse(${c.id})"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+                renderPagination('coursesPagination', data.page, data.pages, loadCourses);
+            } catch (err) { showToast(err.message, 'error'); }
+            finally { hideLoading(); }
+        }
+
+        function openCourseModal() {
+            document.getElementById('courseModalTitle').textContent = 'Add Course';
+            document.getElementById('courseForm').reset();
+            document.getElementById('courseId').value = '';
+            openModal('courseModal');
+        }
+
+        function editCourse(c) {
+            document.getElementById('courseModalTitle').textContent = 'Edit Course';
+            document.getElementById('courseId').value = c.id;
+            document.getElementById('courseCode').value = c.code;
+            document.getElementById('courseName').value = c.name;
+            document.getElementById('courseDept').value = c.department_id || '';
+            document.getElementById('courseTeacher').value = c.teacher_id || '';
+            openModal('courseModal');
+        }
+
+        async function saveCourse() {
+            const id = document.getElementById('courseId').value;
+            const body = {
+                code: document.getElementById('courseCode').value.trim(),
+                name: document.getElementById('courseName').value.trim(),
+                department_id: document.getElementById('courseDept').value || null,
+                teacher_id: document.getElementById('courseTeacher').value || null
+            };
+            try {
+                if (id) {
+                    await api(`/courses/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+                    showToast('Course updated', 'success');
+                } else {
+                    await api('/courses', { method: 'POST', body: JSON.stringify(body) });
+                    showToast('Course added', 'success');
+                }
+                closeModal('courseModal');
+                loadCourses(coursePage);
+                loadDropdowns();
+            } catch (err) { showToast(err.message, 'error'); }
+        }
+
+        async function deleteCourse(id) {
+            if (!confirm('Delete this course? All related timetable entries will also be removed.')) return;
+            try {
+                await api(`/courses/${id}`, { method: 'DELETE' });
+                showToast('Course deleted', 'success');
+                loadCourses(coursePage);
+                loadDropdowns();
+            } catch (err) { showToast(err.message, 'error'); }
+        }
+
+        // ── Timetable CRUD ──────────────────────────
+        async function loadTimetable(page = 1) {
+            ttPage = page;
+            const courseId = document.getElementById('ttCourseFilter').value;
+            let params = `?page=${page}&per_page=10`;
+            if (courseId) params += `&course_id=${courseId}`;
+
+            showLoading();
+            try {
+                const data = await api(`/timetable${params}`);
+                const tbody = document.getElementById('timetableTable');
+                if (!data.timetable.length) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">No slots found</td></tr>';
+                } else {
+                    tbody.innerHTML = data.timetable.map((t, i) => `
+                        <tr>
+                            <td>${(page-1)*10+i+1}</td>
+                            <td>${t.course_code} — ${t.course}</td>
+                            <td>${t.day_of_week}</td>
+                            <td>${t.start_time}</td>
+                            <td>${t.end_time}</td>
+                            <td>${t.room || '—'}</td>
+                            <td class="actions">
+                                <button class="btn-icon" onclick='editTT(${JSON.stringify(t)})'><i class="fas fa-pen"></i></button>
+                                <button class="btn-icon delete" onclick="deleteTT(${t.id})"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+                renderPagination('ttPagination', data.page, data.pages, loadTimetable);
+            } catch (err) { showToast(err.message, 'error'); }
+            finally { hideLoading(); }
+        }
+
+        function openTTModal() {
+            document.getElementById('ttModalTitle').textContent = 'Add Timetable Slot';
+            document.getElementById('ttForm').reset();
+            document.getElementById('ttId').value = '';
+            openModal('ttModal');
+        }
+
+        function editTT(t) {
+            document.getElementById('ttModalTitle').textContent = 'Edit Timetable Slot';
+            document.getElementById('ttId').value = t.id;
+            document.getElementById('ttCourse').value = t.course_id;
+            document.getElementById('ttDay').value = t.day_of_week;
+            document.getElementById('ttStart').value = t.start_time;
+            document.getElementById('ttEnd').value = t.end_time;
+            document.getElementById('ttRoom').value = t.room || '';
+            openModal('ttModal');
+        }
+
+        async function saveTT() {
+            const id = document.getElementById('ttId').value;
+            const body = {
+                course_id: document.getElementById('ttCourse').value,
+                day_of_week: document.getElementById('ttDay').value,
+                start_time: document.getElementById('ttStart').value,
+                end_time: document.getElementById('ttEnd').value,
+                room: document.getElementById('ttRoom').value.trim() || null
+            };
+            try {
+                if (id) {
+                    await api(`/timetable/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+                    showToast('Slot updated', 'success');
+                } else {
+                    await api('/timetable', { method: 'POST', body: JSON.stringify(body) });
+                    showToast('Slot added', 'success');
+                }
+                closeModal('ttModal');
+                loadTimetable(ttPage);
+            } catch (err) { showToast(err.message, 'error'); }
+        }
+
+        async function deleteTT(id) {
+            if (!confirm('Delete this timetable slot?')) return;
+            try {
+                await api(`/timetable/${id}`, { method: 'DELETE' });
+                showToast('Slot deleted', 'success');
+                loadTimetable(ttPage);
+            } catch (err) { showToast(err.message, 'error'); }
+        }
+
+        document.getElementById('courseSearch').addEventListener('input', debounce(() => loadCourses(1)));
+        document.getElementById('ttCourseFilter').addEventListener('change', () => loadTimetable(1));
+
+        loadDropdowns().then(() => { loadCourses(); loadTimetable(); });
+    </script>
+</body>
+</html>

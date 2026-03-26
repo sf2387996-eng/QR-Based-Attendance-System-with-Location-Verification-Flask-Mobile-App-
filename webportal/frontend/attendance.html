@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance — QR Attendance Admin</title>
+    <meta name="description" content="View and monitor attendance records in the QR-Based Attendance System">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">📍</div>
+                <h2>QR Attendance <span>Admin Portal</span></h2>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-label">Main</div>
+                <a href="dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i> Dashboard</a>
+                <a href="users.html"     class="nav-item"><i class="fas fa-users"></i> Users</a>
+                <a href="courses.html"   class="nav-item"><i class="fas fa-book"></i> Courses</a>
+                <a href="attendance.html" class="nav-item"><i class="fas fa-clipboard-check"></i> Attendance</a>
+                <a href="reports.html"   class="nav-item"><i class="fas fa-file-alt"></i> Reports</a>
+                <div class="nav-label">Account</div>
+                <a href="#" class="nav-item" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="admin-badge"><div class="avatar">A</div><span id="adminName">Admin</span></div>
+            </div>
+        </aside>
+
+        <div class="main-content">
+            <header class="topbar">
+                <div style="display:flex;align-items:center;gap:1rem;">
+                    <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                    <h1>Attendance Records</h1>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <!-- Filters -->
+                <div class="panel">
+                    <div class="panel-header"><h2>Attendance Log</h2></div>
+                    <div class="panel-body">
+                        <div class="toolbar" style="flex-wrap:wrap;">
+                            <div class="form-group" style="margin-bottom:0;min-width:150px;">
+                                <label style="font-size:0.75rem;margin-bottom:0.2rem;">From Date</label>
+                                <input type="date" class="form-control" id="dateFrom">
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;min-width:150px;">
+                                <label style="font-size:0.75rem;margin-bottom:0.2rem;">To Date</label>
+                                <input type="date" class="form-control" id="dateTo">
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;min-width:160px;">
+                                <label style="font-size:0.75rem;margin-bottom:0.2rem;">Course</label>
+                                <select class="form-control" id="attCourse"><option value="">All Courses</option></select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;min-width:160px;">
+                                <label style="font-size:0.75rem;margin-bottom:0.2rem;">Student</label>
+                                <select class="form-control" id="attStudent"><option value="">All Students</option></select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;min-width:130px;">
+                                <label style="font-size:0.75rem;margin-bottom:0.2rem;">Status</label>
+                                <select class="form-control" id="attStatus">
+                                    <option value="">All</option>
+                                    <option value="Present">Present</option>
+                                    <option value="Absent">Absent</option>
+                                    <option value="Late">Late</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary btn-sm" onclick="loadAttendance(1)" style="align-self:flex-end;"><i class="fas fa-filter"></i> Filter</button>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th><th>Student</th><th>Course</th><th>Date</th><th>Status</th><th>Location</th><th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendanceTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="pagination" id="attPagination"></div>
+                </div>
+
+                <!-- Stats -->
+                <div class="panel">
+                    <div class="panel-header"><h2>Attendance Percentage by Student</h2></div>
+                    <div class="panel-body">
+                        <div class="toolbar">
+                            <select class="filter-select" id="statsCourse"><option value="">All Courses</option></select>
+                            <button class="btn btn-outline btn-sm" onclick="loadStats()"><i class="fas fa-sync"></i> Refresh</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr><th>Student</th><th>Total</th><th>Present</th><th>Absent</th><th>Late</th><th>Percentage</th></tr>
+                                </thead>
+                                <tbody id="statsTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        if (!requireAuth()) throw 'Not authenticated';
+        initSidebar();
+
+        let attPage = 1;
+
+        async function loadDropdowns() {
+            try {
+                const courses = await api('/courses/all');
+                ['attCourse', 'statsCourse'].forEach(id => {
+                    const sel = document.getElementById(id);
+                    sel.innerHTML = '<option value="">All Courses</option>';
+                    courses.forEach(c => sel.innerHTML += `<option value="${c.id}">${c.code} — ${c.name}</option>`);
+                });
+
+                const students = await api('/students');
+                const sSel = document.getElementById('attStudent');
+                sSel.innerHTML = '<option value="">All Students</option>';
+                students.forEach(s => sSel.innerHTML += `<option value="${s.id}">${s.name}</option>`);
+            } catch (e) {}
+        }
+
+        async function loadAttendance(page = 1) {
+            attPage = page;
+            let params = `?page=${page}&per_page=10`;
+            const dateFrom  = document.getElementById('dateFrom').value;
+            const dateTo    = document.getElementById('dateTo').value;
+            const courseId  = document.getElementById('attCourse').value;
+            const studentId = document.getElementById('attStudent').value;
+            const status    = document.getElementById('attStatus').value;
+
+            if (dateFrom)  params += `&date_from=${dateFrom}`;
+            if (dateTo)    params += `&date_to=${dateTo}`;
+            if (courseId)  params += `&course_id=${courseId}`;
+            if (studentId) params += `&student_id=${studentId}`;
+            if (status)    params += `&status=${status}`;
+
+            showLoading();
+            try {
+                const data = await api(`/attendance${params}`);
+                const tbody = document.getElementById('attendanceTable');
+                if (!data.attendance.length) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">No records found</td></tr>';
+                } else {
+                    tbody.innerHTML = data.attendance.map((a, i) => {
+                        const loc = a.latitude && a.longitude
+                            ? `<a href="https://maps.google.com/?q=${a.latitude},${a.longitude}" target="_blank" style="font-size:0.8rem;"><i class="fas fa-map-marker-alt"></i> View</a>`
+                            : '—';
+                        const badge = `badge-${a.status.toLowerCase()}`;
+                        return `<tr>
+                            <td>${(page-1)*10+i+1}</td>
+                            <td>${a.student}</td>
+                            <td>${a.course}</td>
+                            <td>${a.date}</td>
+                            <td><span class="badge ${badge}">${a.status}</span></td>
+                            <td>${loc}</td>
+                            <td>${a.marked_at ? new Date(a.marked_at).toLocaleTimeString() : '—'}</td>
+                        </tr>`;
+                    }).join('');
+                }
+                renderPagination('attPagination', data.page, data.pages, loadAttendance);
+            } catch (err) { showToast(err.message, 'error'); }
+            finally { hideLoading(); }
+        }
+
+        async function loadStats() {
+            const courseId = document.getElementById('statsCourse').value;
+            let params = courseId ? `?course_id=${courseId}` : '';
+            try {
+                const stats = await api(`/attendance/stats${params}`);
+                const tbody = document.getElementById('statsTable');
+                if (!stats.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">No data</td></tr>';
+                } else {
+                    tbody.innerHTML = stats.map(s => `
+                        <tr>
+                            <td><strong>${s.student}</strong></td>
+                            <td>${s.total}</td>
+                            <td>${s.present}</td>
+                            <td>${s.absent}</td>
+                            <td>${s.late}</td>
+                            <td>${pctBar(s.percentage)}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) { showToast(err.message, 'error'); }
+        }
+
+        document.getElementById('statsCourse').addEventListener('change', loadStats);
+
+        loadDropdowns().then(() => { loadAttendance(); loadStats(); });
+    </script>
+</body>
+</html>

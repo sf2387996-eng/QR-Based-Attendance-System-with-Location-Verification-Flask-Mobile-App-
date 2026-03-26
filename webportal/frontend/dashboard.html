@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — QR Attendance Admin</title>
+    <meta name="description" content="QR Attendance System admin dashboard with overview statistics and charts">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="layout">
+        <!-- ── Sidebar ───────────────────────────────── -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">📍</div>
+                <h2>QR Attendance <span>Admin Portal</span></h2>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-label">Main</div>
+                <a href="dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i> Dashboard</a>
+                <a href="users.html"     class="nav-item"><i class="fas fa-users"></i> Users</a>
+                <a href="courses.html"   class="nav-item"><i class="fas fa-book"></i> Courses</a>
+                <a href="attendance.html" class="nav-item"><i class="fas fa-clipboard-check"></i> Attendance</a>
+                <a href="reports.html"   class="nav-item"><i class="fas fa-file-alt"></i> Reports</a>
+                <div class="nav-label">Account</div>
+                <a href="#" class="nav-item" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="admin-badge">
+                    <div class="avatar">A</div>
+                    <span id="adminName">Admin</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ── Main ──────────────────────────────────── -->
+        <div class="main-content">
+            <header class="topbar">
+                <div style="display:flex;align-items:center;gap:1rem;">
+                    <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                    <h1>Dashboard</h1>
+                </div>
+                <div class="topbar-right">
+                    <span style="font-size:0.85rem;color:var(--text-secondary);" id="currentDate"></span>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
+                        <div class="stat-value" id="totalStudents">—</div>
+                        <div class="stat-label">Total Students</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+                        <div class="stat-value" id="totalTeachers">—</div>
+                        <div class="stat-label">Total Teachers</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-book-open"></i></div>
+                        <div class="stat-value" id="totalCourses">—</div>
+                        <div class="stat-label">Total Courses</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-clipboard-list"></i></div>
+                        <div class="stat-value" id="todayTotal">—</div>
+                        <div class="stat-label">Today's Attendance</div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts-grid">
+                    <div class="panel">
+                        <div class="panel-header"><h2>Today's Attendance Breakdown</h2></div>
+                        <div class="panel-body">
+                            <div class="chart-container">
+                                <canvas id="todayChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-header"><h2>Weekly Attendance Trend</h2></div>
+                        <div class="panel-body">
+                            <div class="chart-container">
+                                <canvas id="weeklyChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        if (!requireAuth()) throw 'Not authenticated';
+        initSidebar();
+
+        // Set current date
+        document.getElementById('currentDate').textContent =
+            new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+        let todayChartInstance = null;
+        let weeklyChartInstance = null;
+
+        async function loadDashboard() {
+            showLoading();
+            try {
+                const data = await api('/dashboard');
+
+                document.getElementById('totalStudents').textContent = data.total_students;
+                document.getElementById('totalTeachers').textContent = data.total_teachers;
+                document.getElementById('totalCourses').textContent  = data.total_courses;
+                document.getElementById('todayTotal').textContent    = data.today.total;
+
+                // Today's doughnut chart
+                if (todayChartInstance) todayChartInstance.destroy();
+                const todayCtx = document.getElementById('todayChart').getContext('2d');
+                const todayData = [data.today.present, data.today.absent, data.today.late];
+                const hasData = todayData.some(v => v > 0);
+
+                todayChartInstance = new Chart(todayCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Present', 'Absent', 'Late'],
+                        datasets: [{
+                            data: hasData ? todayData : [1],
+                            backgroundColor: hasData
+                                ? ['#06d6a0', '#ef476f', '#ffd60a']
+                                : ['#2a2a4a'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: { position: 'bottom', labels: { color: '#a7a7c4', padding: 16 } }
+                        }
+                    }
+                });
+
+                // Weekly bar chart
+                if (weeklyChartInstance) weeklyChartInstance.destroy();
+                const weekCtx = document.getElementById('weeklyChart').getContext('2d');
+                weeklyChartInstance = new Chart(weekCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.weekly.map(d => d.day),
+                        datasets: [
+                            { label: 'Present', data: data.weekly.map(d => d.present), backgroundColor: '#06d6a0', borderRadius: 4 },
+                            { label: 'Absent',  data: data.weekly.map(d => d.absent),  backgroundColor: '#ef476f', borderRadius: 4 },
+                            { label: 'Late',    data: data.weekly.map(d => d.late),    backgroundColor: '#ffd60a', borderRadius: 4 }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        scales: {
+                            x: { grid: { color: '#2a2a4a' }, ticks: { color: '#a7a7c4' } },
+                            y: { grid: { color: '#2a2a4a' }, ticks: { color: '#a7a7c4' }, beginAtZero: true }
+                        },
+                        plugins: {
+                            legend: { labels: { color: '#a7a7c4' } }
+                        }
+                    }
+                });
+            } catch (err) {
+                showToast(err.message || 'Failed to load dashboard', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        loadDashboard();
+    </script>
+</body>
+</html>
