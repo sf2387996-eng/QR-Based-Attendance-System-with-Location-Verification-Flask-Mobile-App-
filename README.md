@@ -1,0 +1,2 @@
+# QR-Based-Attendance-System-with-Location-Verification-Flask-Mobile-App-
+# QR-Based Attendance System  A smart attendance system using QR codes and location verification.  ## Features - QR code-based attendance - Location validation - Admin dashboard - Student mobile app  ## Tech Stack - Flask (Backend) - SQLite / MySQL - Android (Java)  ## Run Backend cd backend pip install -r requirements.txt python run.py
